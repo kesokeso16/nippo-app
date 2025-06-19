@@ -122,13 +122,13 @@
 
 <div id="sections"></div>
 
-<button onclick="generate()">画像を生成</button><br><br>
+<button onclick="generate()">日報をつくる</button><br><br>
 <canvas id="canvas1" width="1240" height="1754"></canvas>
 <a id="downloadLink" style="display:none;"></a>
 
 <label>写真を追加（最大5枚）：<input type="file" id="imageInput" accept="image/*" multiple></label>
 <div id="preview"></div>
-<button onclick="downloadZip()">ZIPで保存する</button>
+<button onclick="downloadZip()">保存・送信する（送る人を選んでね）</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
 <script>
@@ -206,7 +206,7 @@
       const link = document.getElementById("downloadLink");
       link.href = url;
       link.download = "nippo.jpg";
-      link.textContent = "画像をダウンロードする";
+      link.textContent = "画像を保存する";
       link.style.display = "inline-block";
     }, "image/jpeg", 0.9);
   }
@@ -233,7 +233,7 @@
 
   function downloadZip() {
     if (!canvas.toDataURL().includes("data:image")) {
-      alert("先に『画像を生成』ボタンを押してください！");
+      alert("先に『日報をつくる』ボタンを押してください！");
       return;
     }
 
