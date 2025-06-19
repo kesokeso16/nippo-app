@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>日報作成フォーム</title>
+  <style>
+    label { display: block; margin: 4px 0; }
+    .section { margin: 20px 0; border-top: 1px solid #ccc; padding-top: 10px; }
+    canvas { border: 1px solid #ccc; }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</head>
+<body>
+<h1>日報作成フォーム</h1>
+<p>記入日：<span id="today"></span></p>
+
+<label>物件名：
+  <select id="propertySelect">
+    <option value="安藤クリニック">安藤クリニック</option>
+    <option value="Bビル">Bビル</option>
+  </select>
+  または <input type="text" id="propertyInput" placeholder="直接入力">
+</label>
+<label>住所：<input type="text" id="address"></label>
+<label>クライアント：
+  <select id="clientSelect">
+    <option value="株式会社○○">株式会社○○</option>
+    <option value="あきよし不動産">あきよし不動産</option>
+  </select>
+  または <input type="text" id="clientInput" placeholder="直接入力">
+</label>
+
+<fieldset>
+  <legend>作業メンバー</legend>
+  <label><input type="checkbox" name="worker" value="小串">小串</label>
+  <label><input type="checkbox" name="worker" value="渡部">渡部</label>
+  <label><input type="checkbox" name="worker" value="石川">石川</label>
+  <label><input type="checkbox" name="worker" value="永田">永田</label>
+  <label><input type="checkbox" name="worker" value="中尾">中尾</label>
+  <label><input type="checkbox" name="worker" value="相良">相良</label>
+  <label><input type="checkbox" name="worker" value="その他">その他</label>
+  <input type="text" id="workerOther" placeholder="その他の場合入力">
+</fieldset>
+
+<label>作業時間：<input type="time" id="startTime">～<input type="time" id="endTime"></label>
+
+<div id="sections"></div>
+
+<button onclick="generate()">画像を生成</button><br><br>
+<canvas id="canvas1" width="1240" height="1754"></canvas>
+<a id="downloadLink" style="display:none;"></a>
+
+<label>写真を追加（最大5枚）：<input type="file" id="imageInput" accept="image/*" multiple></label>
+<div id="preview"></div>
+<button onclick="downloadZip()">ZIPで保存する</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+<script>
+  document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
+
+  const canvas = document.getElementById("canvas1");
+  const ctx = canvas.getContext("2d");
+  const bgImage = new Image();
+  bgImage.src = "page1.jpg";
+  bgImage.onload = () => ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+  const areas = {
+    "玄関": ["壁・床・天井", "照明器具", "インターホン", "下駄箱", "ドア", "鍵シリンダー", "土間"],
+    "台所": ["壁・床・天井", "窓サッシ", "カーテンレール", "水栓金具", "換気扇", "流し台", "ガスコンロ", "防熱版"],
+    "洗面所": ["壁・床・天井", "照明器具", "洗面台", "鏡", "洗濯パン", "換気扇"],
+    "浴室": ["壁・床・天井", "照明器具", "浴槽", "目地", "シャワーホース", "鏡", "換気扇", "ドア回り"],
+    "トイレ": ["壁・床・天井", "照明器具", "便座", "水洗タンク", "換気扇", "ペーパーホルダー"],
+    "各洋間": ["壁・床・天井", "窓サッシ", "網戸", "カーテンレール", "照明器具", "換気扇", "収納"],
+    "各和室": ["壁・天井", "畳", "窓サッシ", "網戸", "カーテンレール", "照明器具", "換気扇", "収納"],
+    "その他": ["エアコンヒーター", "エアコンスリーブ", "スイッチ", "コンセント", "タオル掛け", "給湯器", "ベランダ", "バルコニー", "物干しかけ"]
+  };
+
+  const workers = ["小串", "渡部", "石川", "永田", "中尾", "相良", "その他"];
+  const sectionContainer = document.getElementById("sections");
+
+  for (let [area, items] of Object.entries(areas)) {
+    const div = document.createElement("div");
+    div.className = "section";
+    div.innerHTML = `<strong>${area}</strong><br>担当者：` +
+      workers.map(w => w === "その他" ?
+        `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}<input type="text" id="${area}_other" placeholder="名前"></label>` :
+        `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}</label>`).join(" ") +
+      `<br>チェック項目：` +
+      items.map(item => `<label><input type="checkbox" name="${area}_check" value="${item}">${item}</label>`).join(" ");
+    sectionContainer.appendChild(div);
+  }
+
+  function getAreaData(area) {
+    const workerChecks = document.querySelectorAll(`input[name='${area}_worker']:checked`);
+    let w = Array.from(workerChecks).map(cb => cb.value);
+    const otherInput = document.getElementById(`${area}_other`);
+    if (w.includes("その他") && otherInput?.value) {
+      w[w.indexOf("その他")] = otherInput.value;
+    }
+    const itemChecks = document.querySelectorAll(`input[name='${area}_check']:checked`);
+    const items = Array.from(itemChecks).map(cb => cb.value);
+    return { area, workers: w.join(", "), items: items.join("、") };
+  }
+
+  function generate() {
+    ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    ctx.font = "20px sans-serif";
+    ctx.fillStyle = "black";
+    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    const address = document.getElementById("address").value;
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    ctx.fillText(`物件名：${prop}`, 100, 100);
+    ctx.fillText(`住所：${address}`, 100, 130);
+    ctx.fillText(`クライアント：${client}`, 100, 160);
+    ctx.fillText(`作業時間：${start}～${end}`, 100, 190);
+    let y = 230;
+    for (let area of Object.keys(areas)) {
+      const data = getAreaData(area);
+      if (data.workers || data.items) {
+        ctx.fillText(`${data.area}｜担当：${data.workers}`, 100, y);
+        y += 30;
+        ctx.fillText(`確認：${data.items}`, 120, y);
+        y += 40;
+      }
+    }
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const link = document.getElementById("downloadLink");
+      link.href = url;
+      link.download = "nippo.jpg";
+      link.textContent = "画像をダウンロードする";
+      link.style.display = "inline-block";
+    }, "image/jpeg", 0.9);
+  }
+
+  let uploadedImages = [];
+  document.getElementById("imageInput").addEventListener("change", function() {
+    const files = this.files;
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.width = 100;
+        document.getElementById("preview").appendChild(img);
+        uploadedImages.push({ name: file.name, dataUrl: e.target.result });
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+
+  function sanitize(str) {
+    return str.trim().replace(/\s+/g, "_").replace(/[\\/:*?"<>|]/g, "_");
+  }
+
+  function downloadZip() {
+    if (!canvas.toDataURL().includes("data:image")) {
+      alert("先に『画像を生成』ボタンを押してください！");
+      return;
+    }
+
+    const zip = new JSZip();
+
+    canvas.toBlob(blob => {
+      zip.file("nippo.jpg", blob);
+
+      const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+      const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+      const address = document.getElementById("address").value;
+      const start = document.getElementById("startTime").value;
+      const end = document.getElementById("endTime").value;
+
+      let txt = "";
+      txt += "物件名：" + prop.trim() + "\n";
+      txt += "住所：" + address.trim() + "\n";
+      txt += "クライアント：" + client.trim() + "\n";
+      txt += "作業時間：" + start + "～" + end + "\n";
+
+      for (let area of Object.keys(areas)) {
+        const data = getAreaData(area);
+        if (data.workers || data.items) {
+          txt += `\n[${area}]\n担当：${data.workers}\n確認：${data.items}\n`;
+        }
+      }
+
+      zip.file("nippo.txt", txt);
+
+      uploadedImages.forEach((img, i) => {
+        const base64 = img.dataUrl.split(",")[1];
+        const safeName = sanitize(`photo${i + 1}.jpg`);
+        zip.file(safeName, base64, { base64: true });
+      });
+
+      zip.generateAsync({ type: "blob" }).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const safePropName = sanitize(prop || "report");
+        a.download = `${dateStr}_${safePropName}_nippo.zip`;
+        a.textContent = `→ ZIPファイルを保存する（${dateStr}_${safePropName}_nippo.zip）`;
+        a.style.display = "inline-block";
+        a.style.marginTop = "10px";
+        a.style.fontSize = "16px";
+        a.style.zIndex = "9999";
+        a.style.position = "relative";
+        document.body.appendChild(a);
+        // ⭐ ここで自動クリックして即ダウンロード！
+        a.click();
+
+      });
+    }, "image/jpeg", 0.9);
+  }
+</script>
+</body>
+</html>
