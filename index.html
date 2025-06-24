@@ -1,42 +1,33 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>テスト送信フォーム</title>
+  <title>日報送信テスト</title>
 </head>
 <body>
   <h1>日報送信テスト</h1>
-  <label>物件名：<input type="text" id="property"></label><br>
-  <label>クライアント：<input type="text" id="client"></label><br>
-  <label>住所：<input type="text" id="address"></label><br>
-  <label>作業時間：<input type="time" id="start">～<input type="time" id="end"></label><br>
   <button onclick="submitToSheet()">送信</button>
 
   <script>
     function submitToSheet() {
-      const postData = {
-        property: document.getElementById("property").value,
-        address: document.getElementById("address").value,
-        client: document.getElementById("client").value,
-        startTime: document.getElementById("start").value,
-        endTime: document.getElementById("end").value,
-        members: "テスト太郎", // 固定でOK
-        sections: "テスト送信"
-      };
-
-      fetch("https://script.google.com/macros/s/AKfycbwDuheF0y7Wy71RltsBAkGTs61qdTpihvvUhkvhdAeEe0dI29FAGRgMsMt1uUshAhq2IA/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbyYt-c7ewMMEZmdrId8FqafLUBMDuHjvbr6LNlgdClyQEggxweV11QGYshhVCrgnAe6Pg/exec", {
         method: "POST",
-        body: JSON.stringify(postData),
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          property: "テスト物件",
+          address: "福岡市テスト1-1-1",
+          client: "テストクライアント",
+          startTime: "10:00",
+          endTime: "11:00",
+          members: "中尾",
+          sections: "テストエリア：中尾／壁・床"
+        })
       })
-      .then(res => res.text())
-      .then(txt => {
-        alert("送信完了！応答: " + txt);
-      })
-      .catch(err => {
-        alert("送信失敗: " + err);
-        console.error(err);
-      });
+        .then(res => res.text())
+        .then(txt => alert("送信成功：" + txt))
+        .catch(err => alert("送信失敗：" + err));
     }
   </script>
 </body>
