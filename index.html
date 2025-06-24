@@ -92,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.11</h1>
+<h1>日報作成フォームver3.12</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -239,7 +239,8 @@ fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0
   headers: {
     "Content-Type": "application/json"
   }
-}).then(res => res.text()).then(txt => {
+})
+.then(res => res.text()).then(txt => {
   console.log("GAS応答:", txt);
 });
 
@@ -277,6 +278,11 @@ fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0
         saveAs(content, `${new Date().toLocaleDateString('ja-JP')}_nippo.zip`);
       });
     });
+    const property = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+
+const postData = {
+  property: property,
+
   }
 
 
@@ -313,13 +319,14 @@ fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0
     sections: sectionsData
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0qD8lPlccnDmX6ch2fPs4LNsL_XeEfDC2Pm5w", {
-    method: "POST",
-    body: JSON.stringify(postData),
-    headers: {
-      "Content-Type": "application/json"
-    }
-  })
+  fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0qD8lPlccnDmX6ch2fPs4LNsL_XeEfDC2Pm5w/exec", {
+  method: "POST",
+  body: JSON.stringify(postData),
+  headers: {
+    "Content-Type": "application/json"
+  }
+})
+
   .then(res => res.text())
   .then(txt => {
     alert("送信完了しました！");
