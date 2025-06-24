@@ -92,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver2.0</h1>
+<h1>日報作成フォームver3.0</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -131,6 +131,8 @@
 <canvas id="canvas1" width="1240" height="1754"></canvas>
 <button onclick="saveCanvas()">画像として保存</button>
 <button onclick="downloadZip()">テキストと画像をZIPで保存</button>
+<br><button onclick="submitToSheet()">フォームを送信</button>
+
 <a id="downloadLink" style="display:none;"></a>
 <script>
   document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
@@ -216,6 +218,31 @@
           ctx.fillText(` チェック: ${checks.join(", ")}`, 70, y); y += 30;
         }
       }
+      // ↓ ZIP作成後の直後とかに挿入してOK
+const postData = {
+  property: prop,
+  address: address,
+  client: client,
+  startTime: start,
+  endTime: end,
+  members: Array.from(document.querySelectorAll("input[name='worker']:checked"))
+                .map(cb => cb.value).join(", "),
+  sections: Object.keys(areas).map(area => {
+    const data = getAreaData(area);
+    return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
+  }).filter(Boolean).join("\n")
+};
+
+fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTWFtYaryW3tPGomLTv_SJ6qvkBzKpl66mhMPvQ/exec", {
+  method: "POST",
+  body: JSON.stringify(postData),
+  headers: {
+    "Content-Type": "application/json"
+  }
+}).then(res => res.text()).then(txt => {
+  console.log("GAS応答:", txt);
+});
+
     }
 
     const fileInput = document.getElementById("imageUpload");
@@ -259,6 +286,49 @@
         .catch(err => console.error('Service Worker registration failed:', err));
     });
   }
+  function submitToSheet() {
+  const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+  const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+  const address = document.getElementById("address").value;
+  const start = document.getElementById("startTime").value;
+  const end = document.getElementById("endTime").value;
+
+  const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
+                      .map(cb => cb.value).join(", ");
+
+  const sectionsData = Object.keys(areas).map(area => {
+    const data = getAreaData(area);
+    return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
+  }).filter(Boolean).join("\n");
+
+  const postData = {
+    property: prop,
+    address: address,
+    client: client,
+    startTime: start,
+    endTime: end,
+    members: members,
+    sections: sectionsData
+  };
+
+  fetch("AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTWFtYaryW3tPGomLTv_SJ6qvkBzKpl66mhMPvQ", {
+    method: "POST",
+    body: JSON.stringify(postData),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(res => res.text())
+  .then(txt => {
+    alert("送信完了しました！");
+    console.log("GAS応答:", txt);
+  })
+  .catch(err => {
+    alert("送信に失敗しました：" + err);
+    console.error(err);
+  });
+}
+
 </script>
 </body>
 </html>
