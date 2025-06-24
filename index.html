@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>日報作成フォーム（アコーディオン対応＋ZIP保存）</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4CAF50">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
@@ -90,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォーム</h1>
+<h1>日報作成フォームver2.0</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -249,6 +251,15 @@
       });
     });
   }
+  // PWA：Service Worker登録
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>
+
