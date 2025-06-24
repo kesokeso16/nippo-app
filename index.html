@@ -92,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.12</h1>
+<h1>日報作成フォームver3.13</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -148,6 +148,7 @@
     "その他": ["エアコンヒーター", "エアコンスリーブ", "スイッチ", "コンセント", "タオル掛け", "給湯器", "ベランダ", "バルコニー", "物干しかけ"]
   };
   const workers = ["小串", "渡部", "石川", "永田", "中尾", "相良", "その他"];
+
   for (let [area, items] of Object.entries(areas)) {
     const accBtn = document.createElement("button");
     accBtn.className = "accordion";
@@ -160,6 +161,7 @@
     sectionContainer.appendChild(accBtn);
     sectionContainer.appendChild(panel);
   }
+
   document.querySelectorAll(".accordion").forEach(btn => {
     btn.addEventListener("click", function () {
       this.classList.toggle("active");
@@ -218,32 +220,6 @@
           ctx.fillText(` チェック: ${checks.join(", ")}`, 70, y); y += 30;
         }
       }
-      // ↓ ZIP作成後の直後とかに挿入してOK
-const postData = {
-  property: prop,
-  address: address,
-  client: client,
-  startTime: start,
-  endTime: end,
-  members: Array.from(document.querySelectorAll("input[name='worker']:checked"))
-                .map(cb => cb.value).join(", "),
-  sections: Object.keys(areas).map(area => {
-    const data = getAreaData(area);
-    return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
-  }).filter(Boolean).join("\n")
-};
-
-fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0qD8lPlccnDmX6ch2fPs4LNsL_XeEfDC2Pm5w/exec", {
-  method: "POST",
-  body: JSON.stringify(postData),
-  headers: {
-    "Content-Type": "application/json"
-  }
-})
-.then(res => res.text()).then(txt => {
-  console.log("GAS応答:", txt);
-});
-
     }
 
     const fileInput = document.getElementById("imageUpload");
@@ -278,15 +254,8 @@ fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0
         saveAs(content, `${new Date().toLocaleDateString('ja-JP')}_nippo.zip`);
       });
     });
-    const property = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
-
-const postData = {
-  property: property,
-
   }
 
-
-  // PWA：Service Worker登録
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('service-worker.js')
@@ -294,64 +263,63 @@ const postData = {
         .catch(err => console.error('Service Worker registration failed:', err));
     });
   }
+
   function submitToSheet() {
-  const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
-  const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
-  const address = document.getElementById("address").value;
-  const start = document.getElementById("startTime").value;
-  const end = document.getElementById("endTime").value;
+    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    const address = document.getElementById("address").value;
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
 
-  const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
-                      .map(cb => cb.value).join(", ");
+    const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
+                        .map(cb => cb.value).join(", ");
 
-  const sectionsData = Object.keys(areas).map(area => {
-    const data = getAreaData(area);
-    return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
-  }).filter(Boolean).join("\n");
+    const sectionsData = Object.keys(areas).map(area => {
+      const data = getAreaData(area);
+      return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
+    }).filter(Boolean).join("\n");
 
-  const postData = {
-    property: prop,
-    address: address,
-    client: client,
-    startTime: start,
-    endTime: end,
-    members: members,
-    sections: sectionsData
-  };
+    const postData = {
+      property: prop,
+      address: address,
+      client: client,
+      startTime: start,
+      endTime: end,
+      members: members,
+      sections: sectionsData
+    };
 
-  fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0qD8lPlccnDmX6ch2fPs4LNsL_XeEfDC2Pm5w/exec", {
-  method: "POST",
-  body: JSON.stringify(postData),
-  headers: {
-    "Content-Type": "application/json"
+    fetch("https://script.google.com/macros/s/AKfycbzFsc2z03xCTvCP_dayPWYbSW5Dv_KL_0qD8lPlccnDmX6ch2fPs4LNsL_XeEfDC2Pm5w/exec", {
+      method: "POST",
+      body: JSON.stringify(postData),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    .then(res => res.text())
+    .then(txt => {
+      alert("送信完了しました！");
+      console.log("GAS応答:", txt);
+    })
+    .catch(err => {
+      alert("送信に失敗しました：" + err);
+      console.error(err);
+    });
   }
-})
 
-  .then(res => res.text())
-  .then(txt => {
-    alert("送信完了しました！");
-    console.log("GAS応答:", txt);
-    document.querySelector("form").reset();
-  })
-  .catch(err => {
-    alert("送信に失敗しました：" + err);
-    console.error(err);
-  });
-}
-function getAreaData(area) {
-  const workerBoxes = document.querySelectorAll(`input[name="${area}_worker"]:checked`);
-  const itemBoxes = document.querySelectorAll(`input[name="${area}_check"]:checked`);
-  const workers = Array.from(workerBoxes).map(cb => {
-    if (cb.value === "その他") {
-      const val = document.getElementById(`${area}_other`).value;
-      return val || "その他";
-    }
-    return cb.value;
-  }).join(", ");
-  const items = Array.from(itemBoxes).map(cb => cb.value).join(", ");
-  return { area, workers, items };
-}
+  function getAreaData(area) {
+    const workerBoxes = document.querySelectorAll(`input[name="${area}_worker"]:checked`);
+    const itemBoxes = document.querySelectorAll(`input[name="${area}_check"]:checked`);
+    const workers = Array.from(workerBoxes).map(cb => {
+      if (cb.value === "その他") {
+        const val = document.getElementById(`${area}_other`).value;
+        return val || "その他";
+      }
+      return cb.value;
+    }).join(", ");
+    const items = Array.from(itemBoxes).map(cb => cb.value).join(", ");
+    return { area, workers, items };
+  }
 </script>
 </body>
 </html>
-
