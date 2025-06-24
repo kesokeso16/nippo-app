@@ -92,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.1</h1>
+<h1>日報作成フォームver3.11</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -331,7 +331,19 @@ fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTW
     console.error(err);
   });
 }
-
+function getAreaData(area) {
+  const workerBoxes = document.querySelectorAll(`input[name="${area}_worker"]:checked`);
+  const itemBoxes = document.querySelectorAll(`input[name="${area}_check"]:checked`);
+  const workers = Array.from(workerBoxes).map(cb => {
+    if (cb.value === "その他") {
+      const val = document.getElementById(`${area}_other`).value;
+      return val || "その他";
+    }
+    return cb.value;
+  }).join(", ");
+  const items = Array.from(itemBoxes).map(cb => cb.value).join(", ");
+  return { area, workers, items };
+}
 </script>
 </body>
 </html>
