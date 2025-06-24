@@ -92,7 +92,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.0</h1>
+<h1>日報作成フォームver3.1</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -278,6 +278,8 @@ fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTW
       });
     });
   }
+
+
   // PWA：Service Worker登録
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -311,7 +313,7 @@ fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTW
     sections: sectionsData
   };
 
-  fetch("AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTWFtYaryW3tPGomLTv_SJ6qvkBzKpl66mhMPvQ", {
+  fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTWFtYaryW3tPGomLTv_SJ6qvkBzKpl66mhMPvQ", {
     method: "POST",
     body: JSON.stringify(postData),
     headers: {
@@ -322,6 +324,7 @@ fetch("https://script.google.com/macros/s/AKfycbyuiuF-ME_z8YmVZdHchMde3XZO8jCGTW
   .then(txt => {
     alert("送信完了しました！");
     console.log("GAS応答:", txt);
+    document.querySelector("form").reset();
   })
   .catch(err => {
     alert("送信に失敗しました：" + err);
