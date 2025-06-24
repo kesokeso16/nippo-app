@@ -163,12 +163,80 @@
       panel.style.display = panel.style.display === "block" ? "none" : "block";
     });
   });
+
+  function generate() {
+    const canvas = document.getElementById("canvas1");
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.font = "24px sans-serif";
+
+    const date = new Date().toLocaleDateString("ja-JP");
+    let y = 40;
+    ctx.fillText(`日付: ${date}`, 50, y); y += 40;
+
+    const property = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    ctx.fillText(`物件名: ${property}`, 50, y); y += 40;
+
+    const address = document.getElementById("address").value;
+    ctx.fillText(`住所: ${address}`, 50, y); y += 40;
+
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    ctx.fillText(`クライアント: ${client}`, 50, y); y += 40;
+
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    ctx.fillText(`作業時間: ${start} ～ ${end}`, 50, y); y += 40;
+
+    const workers = [...document.querySelectorAll('input[name="worker"]:checked')].map(cb => cb.value);
+    const workerOther = document.getElementById("workerOther").value;
+    if (workers.includes("その他") && workerOther) workers[workers.indexOf("その他")] = workerOther;
+    ctx.fillText(`作業メンバー: ${workers.join(", ")}`, 50, y); y += 40;
+
+    for (let [area, _] of Object.entries(areas)) {
+      const checkboxes = document.querySelectorAll(`input[name="${area}_check"]:checked`);
+      const checks = [...checkboxes].map(cb => cb.value);
+      const workerBoxes = document.querySelectorAll(`input[name="${area}_worker"]:checked`);
+      let areaWorkers = [...workerBoxes].map(cb => {
+        if (cb.value === "その他") {
+          const otherVal = document.getElementById(`${area}_other`).value;
+          return otherVal || "その他";
+        }
+        return cb.value;
+      });
+      if (checks.length || areaWorkers.length) {
+        ctx.fillText(`【${area}】`, 50, y); y += 30;
+        if (areaWorkers.length) {
+          ctx.fillText(` 担当: ${areaWorkers.join(", ")}`, 70, y); y += 30;
+        }
+        if (checks.length) {
+          ctx.fillText(` チェック: ${checks.join(", ")}`, 70, y); y += 30;
+        }
+      }
+    }
+
+    const fileInput = document.getElementById("imageUpload");
+    if (fileInput.files.length > 0) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          ctx.drawImage(img, 50, y + 20, 300, 200);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+  }
+
   function saveCanvas() {
     const canvas = document.getElementById("canvas1");
     canvas.toBlob(blob => {
       saveAs(blob, "nippo_image.png");
     });
   }
+
   function downloadZip() {
     const zip = new JSZip();
     const canvas = document.getElementById("canvas1");
