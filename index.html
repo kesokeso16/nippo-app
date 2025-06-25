@@ -1,48 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>日報送信テスト</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日報作成フォーム（アコーディオン対応＋ZIP保存＋Firebase送信）</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4CAF50">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      margin: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    label, select, input, button, canvas {
+      font-size: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input[type="checkbox"] {
+      width: auto;
+      transform: scale(1.5);
+      margin-right: 6px;
+    }
+    .accordion {
+      background-color: #eee;
+      color: #444;
+      cursor: pointer;
+      padding: 10px;
+      width: 100%;
+      text-align: left;
+      border: none;
+      outline: none;
+      font-size: 18px;
+      transition: 0.4s;
+      margin-top: 10px;
+    }
+    .accordion.active, .accordion:hover {
+      background-color: #ccc;
+    }
+    .panel {
+      padding: 0 18px;
+      background-color: white;
+      display: none;
+      overflow: hidden;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 10px 0;
+    }
+  </style>
 </head>
 <body>
-  <h1>日報送信テスト3</h1>
-  <button onclick="submitToFirestore()">送信</button>
+<h1>日報作成フォームver3.15</h1>
+<p>記入日：<span id="today"></span></p>
+<label>物件名：
+  <select id="propertySelect">
+    <option value="">選択してください</option>
+    <option value="物件A">物件A</option>
+    <option value="物件B">物件B</option>
+    <option value="その他">その他</option>
+  </select>
+  <input type="text" id="propertyInput" placeholder="直接入力も可">
+</label>
+<label>住所：<input type="text" id="address"></label>
+<label>クライアント：
+  <select id="clientSelect">
+    <option value="">選択してください</option>
+    <option value="クライアントA">クライアントA</option>
+    <option value="クライアントB">クライアントB</option>
+    <option value="その他">その他</option>
+  </select>
+  <input type="text" id="clientInput" placeholder="直接入力も可">
+</label>
+<fieldset>
+  <legend>作業メンバー</legend>
+  <label><input type="checkbox" name="worker" value="小串">小串</label>
+  <label><input type="checkbox" name="worker" value="渡部">渡部</label>
+  <label><input type="checkbox" name="worker" value="石川">石川</label>
+  <label><input type="checkbox" name="worker" value="永田">永田</label>
+  <label><input type="checkbox" name="worker" value="中尾">中尾</label>
+  <label><input type="checkbox" name="worker" value="相良">相良</label>
+  <label><input type="checkbox" name="worker" value="その他">その他</label>
+  <input type="text" id="workerOther" placeholder="その他の場合入力">
+</fieldset>
+<label>作業時間：<input type="time" id="startTime">～<input type="time" id="endTime"></label>
+<div id="sections"></div>
+<button onclick="submitToFirestore()">Firestoreに送信</button>
+<script>
+  document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  const areas = {
+    "玄関": ["壁・床・天井", "照明器具", "インターホン", "下駄箱", "ドア", "鍵シリンダー", "土間"],
+    "台所": ["壁・床・天井", "窓サッシ", "カーテンレール", "水栓金具", "換気扇", "流し台", "ガスコンロ", "防熱版"],
+    "洗面所": ["壁・床・天井", "照明器具", "洗面台", "鏡", "洗濯パン", "換気扇"],
+    "浴室": ["壁・床・天井", "照明器具", "浴槽", "目地", "シャワーホース", "鏡", "換気扇", "ドア回り"],
+    "トイレ": ["壁・床・天井", "照明器具", "便座", "水洗タンク", "換気扇", "ペーパーホルダー"],
+    "各洋間": ["壁・床・天井", "窓サッシ", "網戸", "カーテンレール", "照明器具", "換気扇", "収納"],
+    "各和室": ["壁・天井", "畳", "窓サッシ", "網戸", "カーテンレール", "照明器具", "換気扇", "収納"],
+    "その他": ["エアコンヒーター", "エアコンスリーブ", "スイッチ", "コンセント", "タオル掛け", "給湯器", "ベランダ", "バルコニー", "物干しかけ"]
+  };
+  const workers = ["小串", "渡部", "石川", "永田", "中尾", "相良", "その他"];
+  const sectionContainer = document.getElementById("sections");
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
-      authDomain: "projectofnakao.firebaseapp.com",
-      projectId: "projectofnakao",
-      storageBucket: "projectofnakao.firebasestorage.app",
-      messagingSenderId: "360445439458",
-      appId: "1:360445439458:web:99682015df64e2170addbb",
-      measurementId: "G-1DEMCT5P88"
+  for (let [area, items] of Object.entries(areas)) {
+    const accBtn = document.createElement("button");
+    accBtn.className = "accordion";
+    accBtn.textContent = area;
+    const panel = document.createElement("div");
+    panel.className = "panel section";
+    const workerHTML = workers.map(w => w === "その他" ? `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}<input type="text" id="${area}_other" placeholder="名前"></label>` : `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}</label>`).join(" ");
+    const itemHTML = items.map(item => `<label><input type="checkbox" name="${area}_check" value="${item}">${item}</label>`).join(" ");
+    panel.innerHTML = `<div><strong>担当者：</strong><br>${workerHTML}</div><br><div><strong>チェック項目：</strong><br>${itemHTML}</div>`;
+    sectionContainer.appendChild(accBtn);
+    sectionContainer.appendChild(panel);
+  }
+
+  document.querySelectorAll(".accordion").forEach(btn => {
+    btn.addEventListener("click", function () {
+      this.classList.toggle("active");
+      const panel = this.nextElementSibling;
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    });
+  });
+
+  // Firebase設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
+    authDomain: "projectofnakao.firebaseapp.com",
+    projectId: "projectofnakao",
+    storageBucket: "projectofnakao.firebasestorage.app",
+    messagingSenderId: "360445439458",
+    appId: "1:360445439458:web:99682015df64e2170addbb",
+    measurementId: "G-1DEMCT5P88"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  function getAreaData(area) {
+    const workerBoxes = document.querySelectorAll(`input[name="${area}_worker"]:checked`);
+    const itemBoxes = document.querySelectorAll(`input[name="${area}_check"]:checked`);
+    const workers = Array.from(workerBoxes).map(cb => {
+      if (cb.value === "その他") {
+        const val = document.getElementById(`${area}_other`).value;
+        return val || "その他";
+      }
+      return cb.value;
+    }).join(", ");
+    const items = Array.from(itemBoxes).map(cb => cb.value).join(", ");
+    return { area, workers, items };
+  }
+
+  function submitToFirestore() {
+    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    const address = document.getElementById("address").value;
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+
+    const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
+                        .map(cb => cb.value).join(", ");
+
+    const sectionsData = Object.keys(areas).map(area => {
+      const data = getAreaData(area);
+      return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
+    }).filter(Boolean).join("\n");
+
+    const postData = {
+      property: prop,
+      address: address,
+      client: client,
+      startTime: start,
+      endTime: end,
+      members: members,
+      sections: sectionsData,
+      timestamp: new Date()
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 関数をグローバルスコープに登録（onclick対応）
-    window.submitToFirestore = async function () {
-      try {
-        await addDoc(collection(db, "nippo"), {
-          property: "テスト物件",
-          address: "福岡市テスト1-1-1",
-          client: "テストクライアント",
-          startTime: "10:00",
-          endTime: "11:00",
-          members: "中尾",
-          sections: "テストエリア：中尾／壁・床",
-          timestamp: new Date()
-        });
-        alert("Firestoreに送信成功");
-      } catch (error) {
-        alert("送信失敗: " + error);
-        console.error(error);
-      }
-    }
-  </script>
+    db.collection("nippo").add(postData)
+      .then(() => alert("Firestoreに送信成功！"))
+      .catch(err => alert("Firestore送信失敗: " + err));
+  }
+</script>
 </body>
 </html>
