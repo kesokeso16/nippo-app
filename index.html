@@ -63,7 +63,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.19</h1>
+<h1>日報作成フォームver3.20</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -198,6 +198,49 @@
         .then(reg => console.log('Service Worker registered:', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
     });
+  }
+  // Firestore 送信処理にIDをカスタム指定して保存
+  function submitToFirestore() {
+    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    const address = document.getElementById("address").value;
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+
+    const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
+                        .map(cb => cb.value).join(", ");
+
+    const sectionsData = Object.keys(areas).map(area => {
+      const data = getAreaData(area);
+      return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
+    }).filter(Boolean).join("\n");
+
+    const postData = {
+      property: prop,
+      address: address,
+      client: client,
+      startTime: start,
+      endTime: end,
+      members: members,
+      sections: sectionsData,
+      timestamp: new Date()
+    };
+
+    const date = new Date().toISOString().split("T")[0];
+    const safeMembers = members.replace(/[\s、,]/g, "_");
+    const docId = `${date}_${prop}_${safeMembers}_${Date.now()}`;
+
+    firebase.initializeApp({
+      apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
+      authDomain: "projectofnakao.firebaseapp.com",
+      projectId: "projectofnakao"
+    });
+
+    const db = firebase.firestore();
+
+    db.collection("nippo").doc(docId).set(postData)
+      .then(() => alert("Firestoreに送信成功！"))
+      .catch(err => alert("Firestore送信失敗: " + err));
   }
 </script>
 </body>
