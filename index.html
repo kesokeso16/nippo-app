@@ -21,10 +21,11 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    label, select, input, button, canvas {
+    label, select, input, button {
       font-size: 16px;
       width: 100%;
       box-sizing: border-box;
+      margin-bottom: 10px;
     }
     input[type="checkbox"] {
       width: auto;
@@ -63,10 +64,48 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.21</h1>
+<h1>日報作成フォームver3.23</h1>
 <p>記入日：<span id="today"></span></p>
+
+<label>物件名：
+  <select id="propertySelect">
+    <option value="">選択してください</option>
+    <option value="物件A">物件A</option>
+    <option value="物件B">物件B</option>
+    <option value="その他">その他</option>
+  </select>
+  <input type="text" id="propertyInput" placeholder="直接入力も可">
+</label>
+
+<label>住所：<input type="text" id="address"></label>
+
+<label>クライアント：
+  <select id="clientSelect">
+    <option value="">選択してください</option>
+    <option value="クライアントA">クライアントA</option>
+    <option value="クライアントB">クライアントB</option>
+    <option value="その他">その他</option>
+  </select>
+  <input type="text" id="clientInput" placeholder="直接入力も可">
+</label>
+
+<label>作業時間：<input type="time" id="startTime"> ～ <input type="time" id="endTime"></label>
+
+<fieldset>
+  <legend>作業メンバー</legend>
+  <label><input type="checkbox" name="worker" value="小串">小串</label>
+  <label><input type="checkbox" name="worker" value="渡部">渡部</label>
+  <label><input type="checkbox" name="worker" value="石川">石川</label>
+  <label><input type="checkbox" name="worker" value="永田">永田</label>
+  <label><input type="checkbox" name="worker" value="中尾">中尾</label>
+  <label><input type="checkbox" name="worker" value="相良">相良</label>
+  <label><input type="checkbox" name="worker" value="その他">その他</label>
+  <input type="text" id="workerOther" placeholder="その他の場合入力">
+</fieldset>
+
 <div id="sections"></div>
 <button onclick="submitToFirestore()">送信</button>
+
 <script>
   document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
   const areas = {
@@ -128,16 +167,24 @@
   }
 
   function submitToFirestore() {
-    const prop = "仮物件";
-    const address = "仮住所";
-    const client = "仮クライアント";
-    const start = "09:00";
-    const end = "10:00";
-    const members = "仮担当";
+    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
+    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
+    const address = document.getElementById("address").value;
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    let members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
+      .map(cb => cb.value);
+    const other = document.getElementById("workerOther").value;
+    if (members.includes("その他") && other) {
+      members[members.indexOf("その他")] = other;
+    }
+    members = members.join(", ");
+
     const sectionsData = Object.keys(areas).map(area => {
       const data = getAreaData(area);
       return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
     }).filter(Boolean).join("\n");
+
     const postData = {
       property: prop,
       address: address,
@@ -149,7 +196,7 @@
       timestamp: new Date()
     };
     const date = new Date().toISOString().split("T")[0];
-    const safeMembers = members.replace(/[\s、,]/g, "_");
+    const safeMembers = members.replace(/\s|、|,/g, "_");
     const docId = `${date}_${prop}_${safeMembers}_${Date.now()}`;
     db.collection("nippo").doc(docId).set(postData)
       .then(() => alert("Firestoreに送信成功！"))
