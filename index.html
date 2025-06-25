@@ -21,7 +21,7 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    label, select, input, button {
+    label, select, input, button, textarea {
       font-size: 16px;
       width: 100%;
       box-sizing: border-box;
@@ -61,10 +61,19 @@
       padding: 0;
       margin: 10px 0;
     }
+    button#submitBtn {
+      font-size: 20px;
+      padding: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.23</h1>
+<h1>日報作成フォームver3.21</h1>
 <p>記入日：<span id="today"></span></p>
 
 <label>物件名：
@@ -104,7 +113,10 @@
 </fieldset>
 
 <div id="sections"></div>
-<button onclick="submitToFirestore()">送信</button>
+
+<label>備考：<textarea id="note" rows="4" placeholder="自由記入欄"></textarea></label>
+
+<button id="submitBtn" onclick="submitToFirestore()">📤 送信</button>
 
 <script>
   document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
@@ -185,6 +197,8 @@
       return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
     }).filter(Boolean).join("\n");
 
+    const note = document.getElementById("note").value;
+
     const postData = {
       property: prop,
       address: address,
@@ -193,6 +207,7 @@
       endTime: end,
       members: members,
       sections: sectionsData,
+      note: note,
       timestamp: new Date()
     };
     const date = new Date().toISOString().split("T")[0];
@@ -213,3 +228,4 @@
 </script>
 </body>
 </html>
+
