@@ -6,6 +6,9 @@
   <title>日報作成フォーム（アコーディオン対応＋ZIP保存＋Firebase送信）</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4CAF50">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js"></script>
@@ -60,7 +63,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.17</h1>
+<h1>日報作成フォームver3.19</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -187,6 +190,14 @@
     db.collection("nippo").add(postData)
       .then(() => alert("Firestoreに送信成功！"))
       .catch(err => alert("Firestore送信失敗: " + err));
+  }
+  // PWA Service Worker 登録処理（追加）
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
   }
 </script>
 </body>
