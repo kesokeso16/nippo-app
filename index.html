@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#4CAF50">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -60,7 +60,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.15</h1>
+<h1>日報作成フォームver3.17</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -132,7 +132,6 @@
     });
   });
 
-  // Firebase設定
   const firebaseConfig = {
     apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
     authDomain: "projectofnakao.firebaseapp.com",
