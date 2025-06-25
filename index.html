@@ -2,38 +2,46 @@
 <html>
 <head>
   <title>日報送信テスト</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
 </head>
 <body>
-  <h1>日報送信テスト</h1>
+  <h1>日報送信テスト3</h1>
   <button onclick="submitToFirestore()">送信</button>
 
-  <script>
-    const firebaseConfig = {
-  apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
-  authDomain: "projectofnakao.firebaseapp.com",
-  projectId: "projectofnakao",
-  storageBucket: "projectofnakao.firebasestorage.app",
-  messagingSenderId: "360445439458",
-  appId: "1:360445439458:web:99682015df64e2170addbb",
-  measurementId: "G-1DEMCT5P88"
-};
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 
-    function submitToFirestore() {
-      db.collection("nippo").add({
-        property: "テスト物件",
-        address: "福岡市テスト1-1-1",
-        client: "テストクライアント",
-        startTime: "10:00",
-        endTime: "11:00",
-        members: "中尾",
-        sections: "テストエリア：中尾／壁・床"
-      })
-      .then(() => alert("Firestoreに送信成功！"))
-      .catch(err => alert("送信失敗: " + err));
+    const firebaseConfig = {
+      apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
+      authDomain: "projectofnakao.firebaseapp.com",
+      projectId: "projectofnakao",
+      storageBucket: "projectofnakao.firebasestorage.app",
+      messagingSenderId: "360445439458",
+      appId: "1:360445439458:web:99682015df64e2170addbb",
+      measurementId: "G-1DEMCT5P88"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 関数をグローバルスコープに登録（onclick対応）
+    window.submitToFirestore = async function () {
+      try {
+        await addDoc(collection(db, "nippo"), {
+          property: "テスト物件",
+          address: "福岡市テスト1-1-1",
+          client: "テストクライアント",
+          startTime: "10:00",
+          endTime: "11:00",
+          members: "中尾",
+          sections: "テストエリア：中尾／壁・床",
+          timestamp: new Date()
+        });
+        alert("Firestoreに送信成功");
+      } catch (error) {
+        alert("送信失敗: " + error);
+        console.error(error);
+      }
     }
   </script>
 </body>
