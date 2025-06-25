@@ -63,7 +63,7 @@
   </style>
 </head>
 <body>
-<h1>日報作成フォームver3.20</h1>
+<h1>日報作成フォームver3.21</h1>
 <p>記入日：<span id="today"></span></p>
 <label>物件名：
   <select id="propertySelect">
@@ -98,9 +98,9 @@
 <label>作業時間：<input type="time" id="startTime">～<input type="time" id="endTime"></label>
 <div id="sections"></div>
 <button onclick="submitToFirestore()">Firestoreに送信</button>
+
 <script>
   document.getElementById("today").textContent = new Date().toLocaleDateString('ja-JP');
-
   const areas = {
     "玄関": ["壁・床・天井", "照明器具", "インターホン", "下駄箱", "ドア", "鍵シリンダー", "土間"],
     "台所": ["壁・床・天井", "窓サッシ", "カーテンレール", "水栓金具", "換気扇", "流し台", "ガスコンロ", "防熱版"],
@@ -112,29 +112,8 @@
     "その他": ["エアコンヒーター", "エアコンスリーブ", "スイッチ", "コンセント", "タオル掛け", "給湯器", "ベランダ", "バルコニー", "物干しかけ"]
   };
   const workers = ["小串", "渡部", "石川", "永田", "中尾", "相良", "その他"];
-  const sectionContainer = document.getElementById("sections");
 
-  for (let [area, items] of Object.entries(areas)) {
-    const accBtn = document.createElement("button");
-    accBtn.className = "accordion";
-    accBtn.textContent = area;
-    const panel = document.createElement("div");
-    panel.className = "panel section";
-    const workerHTML = workers.map(w => w === "その他" ? `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}<input type="text" id="${area}_other" placeholder="名前"></label>` : `<label><input type="checkbox" name="${area}_worker" value="${w}">${w}</label>`).join(" ");
-    const itemHTML = items.map(item => `<label><input type="checkbox" name="${area}_check" value="${item}">${item}</label>`).join(" ");
-    panel.innerHTML = `<div><strong>担当者：</strong><br>${workerHTML}</div><br><div><strong>チェック項目：</strong><br>${itemHTML}</div>`;
-    sectionContainer.appendChild(accBtn);
-    sectionContainer.appendChild(panel);
-  }
-
-  document.querySelectorAll(".accordion").forEach(btn => {
-    btn.addEventListener("click", function () {
-      this.classList.toggle("active");
-      const panel = this.nextElementSibling;
-      panel.style.display = panel.style.display === "block" ? "none" : "block";
-    });
-  });
-
+  // Firebase 初期化（1回だけ）
   const firebaseConfig = {
     apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
     authDomain: "projectofnakao.firebaseapp.com",
@@ -187,60 +166,22 @@
       timestamp: new Date()
     };
 
-    db.collection("nippo").add(postData)
+    const date = new Date().toISOString().split("T")[0];
+    const safeMembers = members.replace(/[\s、,]/g, "_");
+    const docId = `${date}_${prop}_${safeMembers}_${Date.now()}`;
+
+    db.collection("nippo").doc(docId).set(postData)
       .then(() => alert("Firestoreに送信成功！"))
       .catch(err => alert("Firestore送信失敗: " + err));
   }
-  // PWA Service Worker 登録処理（追加）
+
+  // Service Worker 登録（PWA化）
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('service-worker.js')
         .then(reg => console.log('Service Worker registered:', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
     });
-  }
-  // Firestore 送信処理にIDをカスタム指定して保存
-  function submitToFirestore() {
-    const prop = document.getElementById("propertyInput").value || document.getElementById("propertySelect").value;
-    const client = document.getElementById("clientInput").value || document.getElementById("clientSelect").value;
-    const address = document.getElementById("address").value;
-    const start = document.getElementById("startTime").value;
-    const end = document.getElementById("endTime").value;
-
-    const members = Array.from(document.querySelectorAll("input[name='worker']:checked"))
-                        .map(cb => cb.value).join(", ");
-
-    const sectionsData = Object.keys(areas).map(area => {
-      const data = getAreaData(area);
-      return data.workers || data.items ? `${data.area}：${data.workers}／${data.items}` : '';
-    }).filter(Boolean).join("\n");
-
-    const postData = {
-      property: prop,
-      address: address,
-      client: client,
-      startTime: start,
-      endTime: end,
-      members: members,
-      sections: sectionsData,
-      timestamp: new Date()
-    };
-
-    const date = new Date().toISOString().split("T")[0];
-    const safeMembers = members.replace(/[\s、,]/g, "_");
-    const docId = `${date}_${prop}_${safeMembers}_${Date.now()}`;
-
-    firebase.initializeApp({
-      apiKey: "AIzaSyASFMoP61sW83YKtVkFRDNwtUtpE0G8naM",
-      authDomain: "projectofnakao.firebaseapp.com",
-      projectId: "projectofnakao"
-    });
-
-    const db = firebase.firestore();
-
-    db.collection("nippo").doc(docId).set(postData)
-      .then(() => alert("Firestoreに送信成功！"))
-      .catch(err => alert("Firestore送信失敗: " + err));
   }
 </script>
 </body>
